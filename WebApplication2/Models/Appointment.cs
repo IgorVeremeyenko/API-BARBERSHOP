@@ -19,5 +19,5 @@ public partial class Appointment
 
     public virtual Service Service { get; set; } = null!;
 
-    public virtual Admin? User { get; set; } = null;
+    public virtual Admin User { get; set; } = null!;
 }

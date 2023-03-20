@@ -15,5 +15,5 @@ public partial class Statistic
 
     public virtual Costumer Costumer { get; set; } = null!;
 
-    public virtual Admin? User { get; set; } = null;
+    public virtual Admin User { get; set; } = null!;
 }

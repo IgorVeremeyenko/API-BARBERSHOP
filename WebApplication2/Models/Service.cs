@@ -13,7 +13,12 @@ public partial class Service
 
     public int UserId { get; set; }
 
+    public int MasterId { get; set; }
+    public string Category { get; set; } = null!;
+
     public virtual ICollection<Appointment> Appointments { get; } = new List<Appointment>();
+
+    public virtual Master? Master { get; set; } = null;
 
     public virtual Admin? User { get; set; } = null;
 }

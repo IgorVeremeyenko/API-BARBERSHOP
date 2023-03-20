@@ -21,6 +21,8 @@ public partial class MyDatabaseContext : DbContext
 
     public virtual DbSet<Costumer> Costumers { get; set; }
 
+    public virtual DbSet<Master> Masters { get; set; }
+
     public virtual DbSet<Service> Services { get; set; }
 
     public virtual DbSet<Statistic> Statistics { get; set; }
@@ -33,7 +35,7 @@ public partial class MyDatabaseContext : DbContext
     {
         modelBuilder.Entity<Admin>(entity =>
         {
-            entity.ToTable("admins");
+            entity.ToTable("admins", tb => tb.HasTrigger("check_duplicate"));
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.Name)
@@ -43,7 +45,6 @@ public partial class MyDatabaseContext : DbContext
             entity.Property(e => e.Salt)
                 .HasMaxLength(50)
                 .HasColumnName("salt");
-            entity.ToTable(tb => tb.HasTrigger("check_duplicate"));
         });
 
         modelBuilder.Entity<Appointment>(entity =>
@@ -99,11 +100,22 @@ public partial class MyDatabaseContext : DbContext
                 .HasConstraintName("FK_costumers_users");
         });
 
+        modelBuilder.Entity<Master>(entity =>
+        {
+            entity.ToTable("masters");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .HasColumnName("name");
+        });
+
         modelBuilder.Entity<Service>(entity =>
         {
             entity.ToTable("services");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.MasterId).HasColumnName("master_id");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
@@ -112,10 +124,17 @@ public partial class MyDatabaseContext : DbContext
                 .HasColumnName("price");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
+            entity.HasOne(d => d.Master).WithMany(p => p.Services)
+                .HasForeignKey(d => d.MasterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_services_masters");
+
             entity.HasOne(d => d.User).WithMany(p => p.Services)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_services_users");
+            entity.Property(e => e.Category).HasColumnName("category")
+            .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Statistic>(entity =>

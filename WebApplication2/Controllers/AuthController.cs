@@ -18,14 +18,18 @@ namespace WebApplication2.Controllers {
 
         private readonly MyDatabaseContext _dbContextUsers;
 
-        private readonly JwtSecurityTokenHandler _jwtTokenHandler;
-
         private readonly IConfiguration _configuration;
 
         public class LoginUser 
         {
             public string? UserName { get; set; }
             public string? Password { get; set; }
+        }
+
+        private class UserData 
+        {
+           public string? Name { get; set; }
+           public string? Id { get; set; }
         }
 
         public AuthController(MyDatabaseContext dbContextUsers, IConfiguration configuration) {
@@ -127,7 +131,8 @@ namespace WebApplication2.Controllers {
             {
                 new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
                 new Claim(ClaimTypes.Name, request.UserName),
-                new Claim("ID",dbUser.Id.ToString())
+                new Claim("ID",dbUser.Id.ToString()),
+                new Claim("NAME", dbUser.Name)
             };
 
             var key = Encoding.UTF8.GetBytes(_configuration.GetValue("Jwt:Key", "")) ;
@@ -168,15 +173,18 @@ namespace WebApplication2.Controllers {
                 }, out SecurityToken validatedToken);
 
                 var userId = jwt.Claims.First(c => c.Type == "ID").Value;
-
-                Console.WriteLine(userId);
+                var userName = jwt.Claims.First(n => n.Type == "NAME").Value;
+                var newUser = new UserData {
+                    Id = userId,
+                    Name = userName
+                };
                 var user = await _dbContextUsers.Admins.FindAsync(int.Parse(userId));
 
                 if (userId == null) {
                     return NotFound();
                 }
 
-                return Ok(userId);
+                return Ok(newUser);
             }
             catch {
                 return BadRequest("Token is expired");
