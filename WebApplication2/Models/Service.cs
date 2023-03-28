@@ -14,7 +14,8 @@ public partial class Service
     public int UserId { get; set; }
 
     public int MasterId { get; set; }
-    public string Category { get; set; } = null!;
+
+    public string? Category { get; set; }
 
     public virtual ICollection<Appointment> Appointments { get; } = new List<Appointment>();
 

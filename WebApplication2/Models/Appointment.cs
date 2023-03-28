@@ -15,9 +15,11 @@ public partial class Appointment
 
     public DateTime Date { get; set; }
 
-    public virtual Costumer Costumer { get; set; } = null!;
+    public string? Status { get; set; }
 
-    public virtual Service Service { get; set; } = null!;
+    public virtual Costumer? Costumer { get; set; } = null;
 
-    public virtual Admin User { get; set; } = null!;
+    public virtual Service? Service { get; set; } = null;
+
+    public virtual Admin? User { get; set; } = null;
 }

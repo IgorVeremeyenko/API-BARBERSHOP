@@ -23,6 +23,8 @@ public partial class MyDatabaseContext : DbContext
 
     public virtual DbSet<Master> Masters { get; set; }
 
+    public virtual DbSet<MasterSchedule> MasterSchedules { get; set; }
+
     public virtual DbSet<Service> Services { get; set; }
 
     public virtual DbSet<Statistic> Statistics { get; set; }
@@ -57,6 +59,9 @@ public partial class MyDatabaseContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("date");
             entity.Property(e => e.ServiceId).HasColumnName("service_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.Costumer).WithMany(p => p.Appointments)
@@ -110,11 +115,31 @@ public partial class MyDatabaseContext : DbContext
                 .HasColumnName("name");
         });
 
+        modelBuilder.Entity<MasterSchedule>(entity =>
+        {
+            entity.ToTable("master_schedule");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.DayOfWeek)
+                .HasMaxLength(10)
+                .IsUnicode(false)
+                .HasColumnName("day_of_week");
+            entity.Property(e => e.MasterId).HasColumnName("master_id");
+
+            entity.HasOne(d => d.Master).WithMany(p => p.MasterSchedules)
+                .HasForeignKey(d => d.MasterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_master_schedule_master");
+        });
+
         modelBuilder.Entity<Service>(entity =>
         {
             entity.ToTable("services");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Category)
+                .HasMaxLength(50)
+                .HasColumnName("category");
             entity.Property(e => e.MasterId).HasColumnName("master_id");
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
@@ -133,17 +158,15 @@ public partial class MyDatabaseContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_services_users");
-            entity.Property(e => e.Category).HasColumnName("category")
-            .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Statistic>(entity =>
         {
-            entity.ToTable("statistics");
+            entity.ToTable("statistic");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.CostumerId).HasColumnName("costumer_id");
-            entity.Property(e => e.NumOfVisits).HasColumnName("num_of_visits");
+            entity.Property(e => e.Complete).HasColumnName("complete");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
             entity.HasOne(d => d.Costumer).WithMany(p => p.Statistics)

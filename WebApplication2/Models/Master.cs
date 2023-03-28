@@ -9,5 +9,7 @@ public partial class Master
 
     public string Name { get; set; } = null!;
 
+    public virtual ICollection<MasterSchedule> MasterSchedules { get; } = new List<MasterSchedule>();
+
     public virtual ICollection<Service> Services { get; } = new List<Service>();
 }

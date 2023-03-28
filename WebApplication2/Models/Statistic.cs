@@ -9,11 +9,11 @@ public partial class Statistic
 
     public int CostumerId { get; set; }
 
-    public int NumOfVisits { get; set; }
+    public int Complete { get; set; }
 
     public int UserId { get; set; }
 
-    public virtual Costumer Costumer { get; set; } = null!;
+    public virtual Costumer? Costumer { get; set; } = null;
 
-    public virtual Admin User { get; set; } = null!;
+    public virtual Admin? User { get; set; } = null;
 }
