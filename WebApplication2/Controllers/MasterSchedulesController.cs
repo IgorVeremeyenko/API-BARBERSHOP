@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 using WebApplication2.Models;
 
 namespace WebApplication2.Controllers
@@ -91,7 +92,7 @@ namespace WebApplication2.Controllers
         }
 
         // DELETE: api/MasterSchedules/5
-        [HttpDelete("{id}")]
+        /*[HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMasterSchedule(int id)
         {
             if (_context.MasterSchedules == null)
@@ -108,7 +109,34 @@ namespace WebApplication2.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }*/
+
+        [HttpDelete("{masterId}")]
+        public async Task<IActionResult> DeleteByCondition(int masterId) {
+            try {
+                // Получаем все записи из базы данных, удовлетворяющие заданному условию
+                var recordsToDelete = await _context.MasterSchedules
+                    .Where(x => x.MasterId == masterId)
+                    .ToListAsync();
+
+                // Если нет записей для удаления, возвращаем сообщение об ошибке
+                if (!recordsToDelete.Any()) {
+                    return NotFound(JsonSerializer.Serialize($"No records found with {masterId}."));
+                }
+
+                // Удаляем найденные записи из базы данных
+                _context.MasterSchedules.RemoveRange(recordsToDelete);
+                await _context.SaveChangesAsync();
+
+                // Возвращаем сообщение об успешном удалении
+                return Ok(JsonSerializer.Serialize($"Deleted {recordsToDelete.Count} records with {masterId}."));
+            }
+            catch (Exception ex) {
+                // Обрабатываем ошибку и возвращаем сообщение об ошибке
+                return StatusCode(StatusCodes.Status500InternalServerError, JsonSerializer.Serialize($"Error deleting records: {ex.Message}"));
+            }
         }
+
 
         private bool MasterScheduleExists(int id)
         {

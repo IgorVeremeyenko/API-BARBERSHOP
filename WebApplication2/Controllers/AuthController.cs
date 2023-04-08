@@ -8,6 +8,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using WebApplication2.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace WebApplication2.Controllers {
 
@@ -105,7 +107,7 @@ namespace WebApplication2.Controllers {
             _dbContextUsers.Admins.Add(admin);
             await _dbContextUsers.SaveChangesAsync();
 
-            return Ok("User registered successfully");
+            return Ok(JsonSerializer.Serialize("User registered successfully"));
         }
 
         [AllowAnonymous]

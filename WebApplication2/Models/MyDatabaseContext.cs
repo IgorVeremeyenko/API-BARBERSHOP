@@ -113,6 +113,8 @@ public partial class MyDatabaseContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
+            entity.Property(e => e.Phone).HasColumnName("phone")
+            .HasMaxLength(50);
         });
 
         modelBuilder.Entity<MasterSchedule>(entity =>
