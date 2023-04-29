@@ -10,6 +10,8 @@ using System.Text;
 using WebApplication2.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
+using Org.BouncyCastle.Asn1.Ocsp;
 
 namespace WebApplication2.Controllers {
 
@@ -26,6 +28,15 @@ namespace WebApplication2.Controllers {
         {
             public string? UserName { get; set; }
             public string? Password { get; set; }
+        }
+
+        public class LoginUserReset 
+        {
+            public string Name { get; set; }
+
+            public string Password { get; set; }
+
+            public string Email { get; set; }
         }
 
         private class UserData 
@@ -156,6 +167,58 @@ namespace WebApplication2.Controllers {
                 tokenString
             });
         }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("resetpassword")]
+        public async Task<IActionResult> ResetPassword(LoginUser model) {
+            if (model == null || string.IsNullOrWhiteSpace(model.UserName) || string.IsNullOrWhiteSpace(model.Password))
+                return BadRequest("Invalid request");
+            try {
+
+                var user = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => u.Name == model.UserName);
+                if (user == null) {
+                    /*return BadRequest(JsonSerializer.Serialize("Пользователь с таким логином не найден"));*/
+                    return Unauthorized(new { code = "401", message = "Unauthorized request" });
+
+                }
+                var newPassword = model.Password;
+                // generate salt
+                var salt = GenerateSalt();
+
+                // hash password with salt
+                var hashedPassword = HashPassword(model.Password, salt);
+
+                user.Password = hashedPassword;
+                user.Salt = salt;
+
+                // save user to database
+                try {
+
+                    await _dbContextUsers.SaveChangesAsync();
+
+                }
+                catch (Exception e) {
+                    await Console.Out.WriteLineAsync(e.Message);
+                    throw;
+                }
+
+                return Ok(JsonSerializer.Serialize("Пароль успешно сброшен"));
+            }
+            catch (Exception e) {
+
+                await Console.Out.WriteLineAsync(e.Message);
+                throw;
+            }
+
+            
+        }
+
+        public class ResetPasswordViewModel {
+            public string Email { get; set; }
+            public string NewPassword { get; set; }
+        }
+
 
         [AllowAnonymous]
         [HttpGet("validate")]

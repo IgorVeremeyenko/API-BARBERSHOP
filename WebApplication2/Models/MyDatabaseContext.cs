@@ -185,5 +185,9 @@ public partial class MyDatabaseContext : DbContext
         OnModelCreatingPartial(modelBuilder);
     }
 
+    internal Task GeneratePasswordResetTokenAsync(Admin user) {
+        throw new NotImplementedException();
+    }
+
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }
