@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace WebApplication2.Controllers
 {
@@ -90,7 +91,12 @@ namespace WebApplication2.Controllers
           {
               return Problem("Entity set 'MyDatabaseContext.Appointments'  is null.");
           }
+            int timezoneOffset = appointment.TimezoneOffset;
+            DateTime utcTime = appointment.Date;
+            DateTime localTime = utcTime.AddMinutes(-timezoneOffset);
+            appointment.Date = localTime;
             _context.Appointments.Add(appointment);
+            
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetAppointment", new { id = appointment.Id }, appointment);

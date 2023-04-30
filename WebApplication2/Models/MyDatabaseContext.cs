@@ -54,6 +54,8 @@ public partial class MyDatabaseContext : DbContext
             entity.ToTable("appointments");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.MasterId).HasColumnName("masterId");
+            entity.Property(e => e.TimezoneOffset).HasColumnName("timezoneOffset");
             entity.Property(e => e.CostumerId).HasColumnName("costumer_id");
             entity.Property(e => e.Date)
                 .HasColumnType("datetime")

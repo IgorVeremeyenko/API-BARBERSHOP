@@ -13,6 +13,10 @@ public partial class Appointment
 
     public int UserId { get; set; }
 
+    public int MasterId { get; set; }
+
+    public int TimezoneOffset { get; set; }
+
     public DateTime Date { get; set; }
 
     public string? Status { get; set; }
