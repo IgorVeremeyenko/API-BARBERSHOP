@@ -43,6 +43,8 @@ public partial class MyDatabaseContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
+            entity.Property(e => e.Email).HasColumnName("email")
+            .HasMaxLength(50);
             entity.Property(e => e.Password).HasColumnName("password");
             entity.Property(e => e.Salt)
                 .HasMaxLength(50)
@@ -57,6 +59,9 @@ public partial class MyDatabaseContext : DbContext
             entity.Property(e => e.MasterId).HasColumnName("masterId");
             entity.Property(e => e.TimezoneOffset).HasColumnName("timezoneOffset");
             entity.Property(e => e.CostumerId).HasColumnName("costumer_id");
+            entity.Property(e => e.ServiceName).HasColumnName("service_name")
+            .HasMaxLength(20);
+            entity.Property(e => e.ServicePrice).HasColumnName("service_price");
             entity.Property(e => e.Date)
                 .HasColumnType("datetime")
                 .HasColumnName("date");

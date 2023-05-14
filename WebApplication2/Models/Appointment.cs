@@ -10,6 +10,8 @@ public partial class Appointment
     public int CostumerId { get; set; }
 
     public int ServiceId { get; set; }
+    public string? ServiceName { get; set; } = null;
+    public int? ServicePrice { get; set; } = null;
 
     public int UserId { get; set; }
 

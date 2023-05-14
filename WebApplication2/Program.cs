@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using WebApplication2.Models;
+using WebApplication2.Services.Cache;
+using WebApplication2.Services.Costumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +28,9 @@ builder.Services.AddControllersWithViews()
     );
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<CacheService>();
+builder.Services.AddScoped<CalculateRating>();
 builder.Services.AddDbContext<MyDatabaseContext>(options => {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });

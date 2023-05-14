@@ -1,19 +1,19 @@
-﻿using Azure.Core;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Text;
 using WebApplication2.Models;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Identity;
-using Org.BouncyCastle.Asn1.Ocsp;
+using WebApplication2.Services.Cache;
+using WebApplication2.Services;
+using WebApplication2.Services.Auth;
+using Microsoft.Extensions.Caching.Memory;
+using WebApplication2.Models.Auth;
 
-namespace WebApplication2.Controllers {
+namespace WebApplication2.Controllers
+{
 
     [Authorize]
     [Route("api/[controller]")]
@@ -24,93 +24,38 @@ namespace WebApplication2.Controllers {
 
         private readonly IConfiguration _configuration;
 
-        public class LoginUser 
-        {
-            public string? UserName { get; set; }
-            public string? Password { get; set; }
-        }
+        private readonly HashingPassword _hash = new HashingPassword();
 
-        public class LoginUserReset 
-        {
-            public string Name { get; set; }
+        private readonly GeneratingSaltForPasswordHashing _generationSalt = new GeneratingSaltForPasswordHashing();
 
-            public string Password { get; set; }
+        private readonly CacheService _cacheService;
 
-            public string Email { get; set; }
-        }
+        private readonly string cacheEmail = "email_cache_key";
+        private readonly string cacheIdAdmin = "admin_id_cache_key";
 
-        private class UserData 
-        {
-           public string? Name { get; set; }
-           public string? Id { get; set; }
-        }
-
-        public AuthController(MyDatabaseContext dbContextUsers, IConfiguration configuration) {
+        public AuthController(MyDatabaseContext dbContextUsers, IConfiguration configuration, CacheService cacheService) {
             _dbContextUsers = dbContextUsers;
             _configuration = configuration;
-        }
-
-        private string HashPassword(string password, string salt) {
-            var saltedPassword = string.Concat(password, salt);
-            using var sha256 = SHA256.Create();
-            var hashedPassword = Convert.ToBase64String(sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword)));
-            return hashedPassword;
-        }
-
-        private string GenerateSalt() {
-            var random = new Random();
-            var salt = new byte[16];
-            random.NextBytes(salt);
-            return Convert.ToBase64String(salt);
-        }
-
-        [AllowAnonymous]
-        [HttpPost("token")]
-        public async Task<IActionResult> GetTokenAsync([FromBody] LoginUser model) {
-
-            var dbUser = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => u.Name == model.UserName);
-
-            if (dbUser != null) {
-                var claims = new[]
-                {
-                    new Claim(ClaimTypes.Name, model.UserName),
-                    new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString())
-                };
-                
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-                var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    issuer: _configuration["Jwt:Issuer"],
-                    audience: _configuration["Jwt:Audience"],
-                    claims: claims,
-                    expires: DateTime.Now.AddMinutes(30),
-                    signingCredentials: creds);
-
-                return Ok(new {
-                    token = new JwtSecurityTokenHandler().WriteToken(token)
-                });
-            }
-
-            return BadRequest("Invalid credentials");
+            _cacheService = cacheService;
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] LoginUser user) {
-            if (user == null || string.IsNullOrWhiteSpace(user.UserName) || string.IsNullOrWhiteSpace(user.Password))
+            if (user == null || string.IsNullOrWhiteSpace(user.Name) || string.IsNullOrWhiteSpace(user.Password))
                 return BadRequest("Invalid request");
 
             // generate salt
-            var salt = GenerateSalt();
+            var salt = _generationSalt.GenerateSalt();
 
             // hash password with salt
-            var hashedPassword = HashPassword(user.Password, salt);
+            var hashedPassword = _hash.HashPassword(user.Password, salt);
 
             Admin admin = new Admin 
             {
-                Name = user.UserName,
+                Name = user.Name,
                 Password = hashedPassword,
+                Email = user.Email,
                 Salt = salt,
             };
 
@@ -124,44 +69,25 @@ namespace WebApplication2.Controllers {
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUser request) {
-            if (request == null || string.IsNullOrWhiteSpace(request.UserName) || string.IsNullOrWhiteSpace(request.Password))
+            if (request == null || string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Password))
                 return BadRequest("Invalid request");
 
             // get user from database
-            var dbUser = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => u.Name == request.UserName);
+            var dbUser = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => u.Name == request.Name);
 
             if (dbUser == null)
                 return NotFound("User not found");
 
             // hash password with user's salt and compare with hashed password in database
-            var hashedPassword = HashPassword(request.Password, dbUser.Salt);
+            var hashedPassword = _hash.HashPassword(request.Password, dbUser.Salt);
 
             if (hashedPassword != dbUser.Password)
                 return BadRequest("Invalid credentials");
 
             // generate JWT token
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, dbUser.Id.ToString()),
-                new Claim(ClaimTypes.Name, request.UserName),
-                new Claim("ID",dbUser.Id.ToString()),
-                new Claim("NAME", dbUser.Name)
-            };
+            GenerateToken tokens = new GenerateToken();
 
-            var key = Encoding.UTF8.GetBytes(_configuration.GetValue("Jwt:Key", "")) ;
-            var issuer = _configuration.GetValue<string>("Jwt:Issuer", "");
-            var audience = _configuration.GetValue<string>("Jwt:Audience", "");
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var tokenDescriptor = new SecurityTokenDescriptor {
-                Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(1),
-                Issuer = issuer,
-                Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            var tokenString = tokenHandler.WriteToken(token);
+            var tokenString = tokens.ClaimsInit(dbUser, _configuration, request.Name);
 
             return Ok(new {
                 tokenString
@@ -170,41 +96,30 @@ namespace WebApplication2.Controllers {
 
         [AllowAnonymous]
         [HttpPost]
-        [Route("resetpassword")]
-        public async Task<IActionResult> ResetPassword(LoginUser model) {
-            if (model == null || string.IsNullOrWhiteSpace(model.UserName) || string.IsNullOrWhiteSpace(model.Password))
+        [Route("sendCode")]
+        public async Task<IActionResult> ResetPassword(ResetPassword model) {
+            if (model == null || string.IsNullOrWhiteSpace(model.Login) || string.IsNullOrWhiteSpace(model.Email))
                 return BadRequest("Invalid request");
             try {
 
-                var user = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => u.Name == model.UserName);
+                var user = await _dbContextUsers.Admins.FirstOrDefaultAsync(u => (u.Name == model.Login) && (u.Email == model.Email));
                 if (user == null) {
-                    /*return BadRequest(JsonSerializer.Serialize("Пользователь с таким логином не найден"));*/
-                    return Unauthorized(new { code = "401", message = "Unauthorized request" });
+                    return BadRequest(JsonSerializer.Serialize("Пользователя не найдено в базе данных"));
+                    /*return Unauthorized(new { code = "401", message = "Unauthorized request" });*/
 
                 }
-                var newPassword = model.Password;
-                // generate salt
-                var salt = GenerateSalt();
 
-                // hash password with salt
-                var hashedPassword = HashPassword(model.Password, salt);
-
-                user.Password = hashedPassword;
-                user.Salt = salt;
-
-                // save user to database
-                try {
-
-                    await _dbContextUsers.SaveChangesAsync();
-
+                GenerateAndSendOTPOnEmail otp = new GenerateAndSendOTPOnEmail(model.Email, _cacheService);
+                var isSentEmail = otp.SendOTPEmail();
+                if (isSentEmail) {
+                    _cacheService.Set(cacheIdAdmin, user.Id, TimeSpan.FromMinutes(10));
+                    return Ok(JsonSerializer.Serialize($"Вам на почту, {model.Email}, отправлен код"));
                 }
-                catch (Exception e) {
-                    await Console.Out.WriteLineAsync(e.Message);
-                    throw;
+                else {
+                    return BadRequest(JsonSerializer.Serialize("Не удалось отправить код"));
                 }
-
-                return Ok(JsonSerializer.Serialize("Пароль успешно сброшен"));
             }
+            
             catch (Exception e) {
 
                 await Console.Out.WriteLineAsync(e.Message);
@@ -213,12 +128,22 @@ namespace WebApplication2.Controllers {
 
             
         }
-
-        public class ResetPasswordViewModel {
-            public string Email { get; set; }
-            public string NewPassword { get; set; }
+       
+        [AllowAnonymous]
+        [HttpPost]
+        [Route("validateOtp/{otp}")]
+        public IActionResult ValidateOtp(int otp) {
+            ValidateOTP validateOTP = new ValidateOTP(_cacheService);
+            var email = _cacheService.Get<string>(cacheEmail);
+            var isValid = validateOTP.IsOTPCodeValid(email, otp);
+            if (isValid) {
+                var id = _cacheService.Get<int>(cacheIdAdmin);
+                return Ok(new { code = $"{id}", message = "ID" });
+            }
+            else {
+                return Unauthorized(JsonSerializer.Serialize("Неверный код подтверждения"));
+            }
         }
-
 
         [AllowAnonymous]
         [HttpGet("validate")]
@@ -239,7 +164,7 @@ namespace WebApplication2.Controllers {
 
                 var userId = jwt.Claims.First(c => c.Type == "ID").Value;
                 var userName = jwt.Claims.First(n => n.Type == "NAME").Value;
-                var newUser = new UserData {
+                var newUser = new UserDataForValidateToken {
                     Id = userId,
                     Name = userName
                 };

@@ -11,6 +11,8 @@ public partial class Admin
 
     public string Password { get; set; } = null!;
 
+    public string Email { get; set; } = null!;
+
     public string? Salt { get; set; }
 
     public virtual ICollection<Appointment> Appointments { get; } = new List<Appointment>();
