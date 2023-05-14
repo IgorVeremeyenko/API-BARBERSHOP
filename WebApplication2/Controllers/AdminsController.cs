@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
+using WebApplication2.Services;
+using WebApplication2.Services.Cache;
 
 namespace WebApplication2.Controllers
 {
@@ -14,6 +18,10 @@ namespace WebApplication2.Controllers
     public class AdminsController : ControllerBase
     {
         private readonly MyDatabaseContext _context;
+
+        private readonly GeneratingSaltForPasswordHashing _generationSalt = new GeneratingSaltForPasswordHashing();
+
+        private readonly HashingPassword _hash = new HashingPassword();
 
         public AdminsController(MyDatabaseContext context)
         {
@@ -51,6 +59,7 @@ namespace WebApplication2.Controllers
 
         // PUT: api/Admins/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [AllowAnonymous]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAdmin(int id, Admin admin)
         {
@@ -58,8 +67,18 @@ namespace WebApplication2.Controllers
             {
                 return BadRequest();
             }
+            var salt = _generationSalt.GenerateSalt();
 
-            _context.Entry(admin).State = EntityState.Modified;
+            var hashedPassword = _hash.HashPassword(admin.Password, salt);
+
+            var adm = await _context.Admins.FindAsync(id);
+
+            if (adm != null) {
+                adm.Password = hashedPassword;
+                adm.Salt = salt;
+            }
+            
+            _context.Entry(adm).State = EntityState.Modified;
 
             try
             {

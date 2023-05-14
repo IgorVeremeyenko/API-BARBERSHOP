@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
+using WebApplication2.Services.Cache;
 
 namespace WebApplication2.Controllers
 {
@@ -15,9 +11,16 @@ namespace WebApplication2.Controllers
     {
         private readonly MyDatabaseContext _context;
 
-        public StatisticsController(MyDatabaseContext context)
+        private readonly CacheService _cacheService;
+
+        private readonly string cacheAllCostumersKey = "costumers_cache_key";
+
+        private readonly string cacheOnlyCostumerKey = "costumer_by_id_cache_key";
+
+        public StatisticsController(MyDatabaseContext context, CacheService cacheService)
         {
             _context = context;
+            _cacheService = cacheService;
         }
 
         // GET: api/Statistics
@@ -90,6 +93,8 @@ namespace WebApplication2.Controllers
               return Problem("Entity set 'MyDatabaseContext.Statistics'  is null.");
           }
             _context.Statistics.Add(statistic);
+            _cacheService.Delete(cacheOnlyCostumerKey);
+            _cacheService.Delete(cacheAllCostumersKey);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction("GetStatistic", new { id = statistic.Id }, statistic);
@@ -110,6 +115,8 @@ namespace WebApplication2.Controllers
             }
 
             _context.Statistics.Remove(statistic);
+            _cacheService.Delete(cacheOnlyCostumerKey);
+            _cacheService.Delete(cacheAllCostumersKey);
             await _context.SaveChangesAsync();
 
             return NoContent();

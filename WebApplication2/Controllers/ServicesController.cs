@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
+using WebApplication2.Models.TreeNodes;
+using WebApplication2.Services;
 
 namespace WebApplication2.Controllers
 {
@@ -29,6 +26,16 @@ namespace WebApplication2.Controllers
               return NotFound();
           }
             return await _context.Services.ToListAsync();
+        }
+        [HttpGet("TreeNode")]
+        public async Task<ActionResult<IEnumerable<TreeNode>>> GetTreeNodeServices() {
+            if (_context.Services == null) {
+                return NotFound();
+            }
+            var services = await _context.Services.ToListAsync();
+            GenerateTreeNodeListServices generateTreeNodeListServices = new GenerateTreeNodeListServices();
+            var result = generateTreeNodeListServices.GetTreeNode(_context, services);
+            return result;
         }
 
         // GET: api/Services/5

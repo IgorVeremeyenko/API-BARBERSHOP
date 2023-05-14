@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace WebApplication2.Models;
+﻿namespace WebApplication2.Models;
 
 public partial class Service
 {
