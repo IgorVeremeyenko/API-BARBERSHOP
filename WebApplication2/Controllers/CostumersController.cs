@@ -74,16 +74,8 @@ namespace WebApplication2.Controllers
           }
             var costumer = new Costumer();
 
-            var isCache = _cacheService.TryGetValueSingle(cacheOnlyCostumerKey, costumer);
-
-            if (!isCache) {
-                costumer = await _context.Costumers.FindAsync(id);
-                _cacheService.Set(cacheOnlyCostumerKey, costumer, TimeSpan.FromHours(12));
-            }
-            else {
-                /*costumer = _cacheService.Get<Costumer>(cacheOnlyCostumerKey);*/
-                costumer = await _context.Costumers.FindAsync(id);
-            }
+            costumer = await _context.Costumers.FindAsync(id);
+          
 
             if (costumer == null)
             {

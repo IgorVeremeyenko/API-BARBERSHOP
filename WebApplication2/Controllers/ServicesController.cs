@@ -3,28 +3,26 @@ using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
 using WebApplication2.Models.TreeNodes;
 using WebApplication2.Services;
+using WebApplication2.ServicesList;
+using WebApplication2.ServicesList.Service;
 
 namespace WebApplication2.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ServicesController : ControllerBase
-    {
+    public class ServicesController : ControllerBase {
         private readonly MyDatabaseContext _context;
 
-        public ServicesController(MyDatabaseContext context)
-        {
+        public ServicesController(MyDatabaseContext context) {
             _context = context;
         }
 
         // GET: api/Services
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Service>>> GetServices()
-        {
-          if (_context.Services == null)
-          {
-              return NotFound();
-          }
+        public async Task<ActionResult<IEnumerable<Service>>> GetServices() {
+            if (_context.Services == null) {
+                return NotFound();
+            }
             return await _context.Services.ToListAsync();
         }
         [HttpGet("TreeNode")]
@@ -35,6 +33,54 @@ namespace WebApplication2.Controllers
             var services = await _context.Services.ToListAsync();
             GenerateTreeNodeListServices generateTreeNodeListServices = new GenerateTreeNodeListServices();
             var result = generateTreeNodeListServices.GetTreeNode(_context, services);
+            return result;
+        }
+
+        [HttpGet("appointmentFilter")]
+        public async Task<ActionResult<IEnumerable<Categorized>>> GetServicesForAppointment() {
+            if (_context.Services == null) {
+                return NotFound();
+            }
+            var services = await _context.Services.ToListAsync();
+            FilteredAppointments filteredAppointments = new FilteredAppointments();
+            var result = filteredAppointments.GetList(services);
+
+            return result;
+        }
+
+        [HttpGet("listGroupedByCategory")]
+        public async Task<ActionResult<IEnumerable<Service>>> GetServicesListCategory() {
+            if (_context.Services == null) {
+                return NotFound();
+            }
+            var services = await _context.Services.ToListAsync();
+            ServiceListGroupedByCategory serviceListGroupedByCategory = new ServiceListGroupedByCategory();
+            var result = serviceListGroupedByCategory.GetCategories(services);
+
+            return result;
+        }
+
+        [HttpGet("listGroupedByName")]
+        public async Task<ActionResult<IEnumerable<Service>>> GetServicesListName() {
+            if (_context.Services == null) {
+                return NotFound();
+            }
+            var services = await _context.Services.ToListAsync();
+            ServiceListGroupedByName serviceListGroupedByCategory = new ServiceListGroupedByName();
+            var result = serviceListGroupedByCategory.GetNames(services);
+
+            return result;
+        }
+
+        [HttpGet("loadServicesForEditComponent/{category}")]
+        public async Task<ActionResult<IEnumerable<Service>>> GetServicesForEditing(string category) {
+            if (_context.Services == null) {
+                return NotFound();
+            }
+            var services = await _context.Services.ToListAsync();
+            FilteredByName filteredAppointments = new FilteredByName();
+            var result = filteredAppointments.GetList(category, services);
+
             return result;
         }
 

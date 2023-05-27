@@ -91,26 +91,6 @@ namespace WebApplication2.Controllers
             return CreatedAtAction("GetMasterSchedule", new { id = masterSchedule.Id }, masterSchedule);
         }
 
-        // DELETE: api/MasterSchedules/5
-        /*[HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteMasterSchedule(int id)
-        {
-            if (_context.MasterSchedules == null)
-            {
-                return NotFound();
-            }
-            var masterSchedule = await _context.MasterSchedules.FindAsync(id);
-            if (masterSchedule == null)
-            {
-                return NotFound();
-            }
-
-            _context.MasterSchedules.Remove(masterSchedule);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }*/
-
         [HttpDelete("{masterId}")]
         public async Task<IActionResult> DeleteByCondition(int masterId) {
             try {

@@ -48,6 +48,23 @@ namespace WebApplication2.Controllers
             return counter.Count(appointments, id);
         }
 
+        [HttpGet("masterName/{name}")]
+        public async Task<ActionResult<Master>> GetMasterByName(string name) {
+
+
+            if (_context.Masters == null) {
+                return NotFound();
+            }
+            var master = await _context.Masters.Where(p => p.Name == name).FirstOrDefaultAsync();
+
+            if (master == null) {
+                return NotFound();
+            }
+
+            return master;
+
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<Master>> GetMaster(int id) {
 
