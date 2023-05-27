@@ -67,6 +67,7 @@ namespace WebApplication2.Services.Costumers
                 app.RatingValue = rating;
                 app.Total = totalVisits;
                 app.UserId = costumer.UserId;
+                app.SuccessCount = successfulVisits;
                 if (apps.Count > 0)
                 {
                     app.apps = apps;
