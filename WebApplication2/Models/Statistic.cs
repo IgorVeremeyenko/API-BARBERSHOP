@@ -13,7 +13,7 @@ public partial class Statistic
 
     public int UserId { get; set; }
 
-    public virtual Costumer? Costumer { get; set; } = null;
+    public virtual Costumer.Costumer? Costumer { get; set; } = null;
 
     public virtual Admin? User { get; set; } = null;
 }

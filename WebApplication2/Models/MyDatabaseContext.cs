@@ -19,7 +19,7 @@ public partial class MyDatabaseContext : DbContext
 
     public virtual DbSet<Appointment> Appointments { get; set; }
 
-    public virtual DbSet<Costumer> Costumers { get; set; }
+    public virtual DbSet<Costumer.Costumer> Costumers { get; set; }
 
     public virtual DbSet<Master> Masters { get; set; }
 
@@ -87,7 +87,7 @@ public partial class MyDatabaseContext : DbContext
                 .HasConstraintName("FK_appointments_users");
         });
 
-        modelBuilder.Entity<Costumer>(entity =>
+        modelBuilder.Entity<Costumer.Costumer>(entity =>
         {
             entity.ToTable("costumers");
 
@@ -122,6 +122,7 @@ public partial class MyDatabaseContext : DbContext
                 .HasColumnName("name");
             entity.Property(e => e.Phone).HasColumnName("phone")
             .HasMaxLength(50);
+            entity.Property(e => e.UserId).HasColumnName("userId");
         });
 
         modelBuilder.Entity<MasterSchedule>(entity =>
@@ -177,7 +178,7 @@ public partial class MyDatabaseContext : DbContext
             entity.Property(e => e.CostumerId).HasColumnName("costumer_id");
             entity.Property(e => e.Complete).HasColumnName("complete");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-
+            
             entity.HasOne(d => d.Costumer).WithMany(p => p.Statistics)
                 .HasForeignKey(d => d.CostumerId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

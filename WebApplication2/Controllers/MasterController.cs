@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
-using WebApplication2.Services.Appointments;
 using WebApplication2.Services.Masters;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+using WebApplication2.ServicesList.Masters.Controllers.Delete;
+using WebApplication2.ServicesList.Masters.Controllers.Get;
+using WebApplication2.ServicesList.Masters.Controllers.Post;
+using WebApplication2.ServicesList.Masters.Controllers.Put;
 
 namespace WebApplication2.Controllers
 {
@@ -12,133 +12,95 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class MasterController : ControllerBase {
 
-        private readonly MyDatabaseContext _context;
+        private readonly GetMasterListByIdService _getMasterListByIdService;
 
-        public MasterController(MyDatabaseContext context) 
-        {
-            _context = context;
+        private readonly GetMasterSpecialListService _getMasterSpecialListService;
+
+        private readonly GetMasterListService _getMasterListService;
+
+        private readonly GetMasterByNameService _getMasterByNameService;
+
+        private readonly GetMasterByIdService _getMasterByIdService;
+
+        private readonly PostMasterService _postMasterService;
+
+        private readonly PutMasterService _putMasterService;
+        
+        private readonly DeleteMasterService _deleteMasterService;
+
+        public MasterController(
+            GetMasterListByIdService getMasterListByIdService,
+            GetMasterListService getMasterListService,
+            GetMasterByNameService getMasterByNameService,
+            GetMasterByIdService getMasterByIdService,
+            PostMasterService postMasterService,
+            PutMasterService putMasterService,
+            DeleteMasterService deleteMasterService,
+            GetMasterSpecialListService getMasterSpecialListService) {
+            _getMasterListByIdService = getMasterListByIdService;
+            _getMasterListService = getMasterListService;
+            _getMasterByNameService = getMasterByNameService;
+            _getMasterByIdService = getMasterByIdService;
+            _postMasterService = postMasterService;
+            _putMasterService = putMasterService;
+            _deleteMasterService = deleteMasterService;
+            _getMasterSpecialListService = getMasterSpecialListService;
         }
         // GET: api/<ValuesController>
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Master>>> GetMasters() {
+        [HttpGet("allMasters/{userId}")]
+        public async Task<ActionResult<IEnumerable<Master>>> GetMasters(int userId) {
 
-            if (_context.Masters == null) {
-                return NotFound();
-            }
-            return await _context.Masters.ToListAsync();
+            return await _getMasterListService.Init(userId);
         }
 
-        [HttpGet("masterList")]
-        public async Task<List<MastersService>> GetMastersList() {
+        [HttpGet("masterList/{id}")]
+        public async Task<List<MastersService>> GetMastersList(int id) {
 
-            var masters = await _context.Masters.ToListAsync();
-            var services = await _context.Services.ToListAsync();
-            var masterSchedules = await _context.MasterSchedules.ToListAsync();
-            GenerateMasterList generateMasterList = new GenerateMasterList();
-            var result = generateMasterList.MasterList(masters, services, masterSchedules);
-            return result;
+            return await _getMasterSpecialListService.Init(id);
         }
 
         [HttpGet("masterID/{id}")]
         public int GetMastersCount(int id) {
 
-            var appointments = _context.Appointments.ToList();
-            CounterHowManyAppointments counter = new CounterHowManyAppointments();
-            
-            return counter.Count(appointments, id);
+           return _getMasterListByIdService.Init( id);
         }
 
-        [HttpGet("masterName/{name}")]
-        public async Task<ActionResult<Master>> GetMasterByName(string name) {
+        [HttpGet("masterName/{name, adminId}")]
+        public async Task<ActionResult<Master>> GetMasterByName(string name, int adminId) {
 
-
-            if (_context.Masters == null) {
-                return NotFound();
-            }
-            var master = await _context.Masters.Where(p => p.Name == name).FirstOrDefaultAsync();
-
-            if (master == null) {
-                return NotFound();
-            }
-
-            return master;
-
+            return await _getMasterByNameService.Init( name, adminId);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<Master>> GetMaster(int id) {
 
-
-            if (_context.Masters == null) {
-                return NotFound();
-            }
-            var master = await _context.Masters.FindAsync(id);
-
-            if (master == null) {
-                return NotFound();
-            }
-
-            return master;
-
+            return await _getMasterByIdService.Init( id);
         }
 
         // POST api/<ValuesController>
         [HttpPost]
-        public async Task<ActionResult<Admin>> PostMaster(Master master) {
+        public async Task<ActionResult<Master>> PostMaster(Master master) {
 
-            if (_context.Masters == null) {
-                return Problem("Entity set 'MyDatabaseContext.Masters'  is null.");
+            var obj = _postMasterService.Init( master);
+            if(obj == null) {
+                return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
             }
-            _context.Masters.Add(master);
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetMaster", new { id = master.Id }, master);
+            return CreatedAtAction("GetMaster", new { id = obj.Id }, obj);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> PutMaster(int id, Master master) {
 
-            if (id != master.Id) {
-                return BadRequest();
-            }
-
-            _context.Entry(master).State = EntityState.Modified;
-
-            try {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException) {
-                if (!MasterExists(id)) {
-                    return NotFound();
-                }
-                else {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        private bool MasterExists(int id) {
-            return (_context.Masters?.Any(e => e.Id == id)).GetValueOrDefault();
+            return await _putMasterService.Init( id, master);
         }
 
         // DELETE api/<ValuesController>/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMaster(int id) {
 
-            if (_context.Masters  == null) {
-                return NotFound();
-            }
-            var master = await _context.Masters.FindAsync(id);
-            if (master == null) {
-                return NotFound();
-            }
-
-            _context.Masters.Remove(master);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return await _deleteMasterService.Init( id);
         }
+
     }
 }

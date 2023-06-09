@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
-using WebApplication2.Services.Cache;
+using WebApplication2.ServicesList.Statistics.Controllers.Delete;
+using WebApplication2.ServicesList.Statistics.Controllers.Get;
+using WebApplication2.ServicesList.Statistics.Controllers.Post;
+using WebApplication2.ServicesList.Statistics.Controllers.Put;
 
 namespace WebApplication2.Controllers
 {
@@ -9,93 +11,61 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class StatisticsController : ControllerBase
     {
-        private readonly MyDatabaseContext _context;
 
-        private readonly CacheService _cacheService;
+        private readonly GetStatListService _statListService;
 
-        private readonly string cacheAllCostumersKey = "costumers_cache_key";
+        private readonly GetStatByIdService _statByIdService;
 
-        private readonly string cacheOnlyCostumerKey = "costumer_by_id_cache_key";
+        private readonly PostStatService _postStatService;
 
-        public StatisticsController(MyDatabaseContext context, CacheService cacheService)
-        {
-            _context = context;
-            _cacheService = cacheService;
+        private readonly DeleteStatService _deleteStatService;
+
+        private readonly PutStatService _putStatService;
+
+        public StatisticsController(
+            GetStatListService getStatListService,
+            GetStatByIdService statByIdService,
+            PostStatService postStatService,
+            DeleteStatService deleteStatService,
+            PutStatService putStatService) {
+
+            _statListService = getStatListService;
+            _statByIdService = statByIdService;
+            _postStatService = postStatService;
+            _deleteStatService = deleteStatService;
+            _putStatService = putStatService;
         }
 
         // GET: api/Statistics
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Statistic>>> GetStatistics()
         {
-          if (_context.Statistics == null)
-          {
-              return NotFound();
-          }
-            return await _context.Statistics.ToListAsync();
+            return await _statListService.Init();
         }
 
         // GET: api/Statistics/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Statistic>> GetStatistic(int id)
         {
-          if (_context.Statistics == null)
-          {
-              return NotFound();
-          }
-            var statistic = await _context.Statistics.FindAsync(id);
-
-            if (statistic == null)
-            {
-                return NotFound();
-            }
-
-            return statistic;
+            return await _statByIdService.Init(id);
         }
 
         // PUT: api/Statistics/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutStatistic(int id, Statistic statistic)
         {
-            if (id != statistic.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(statistic).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!StatisticExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return await _putStatService.Init(id, statistic);
         }
 
         // POST: api/Statistics
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Statistic>> PostStatistic(Statistic statistic)
         {
-          if (_context.Statistics == null)
-          {
-              return Problem("Entity set 'MyDatabaseContext.Statistics'  is null.");
-          }
-            _context.Statistics.Add(statistic);
-            _cacheService.Delete(cacheOnlyCostumerKey);
-            _cacheService.Delete(cacheAllCostumersKey);
-            await _context.SaveChangesAsync();
+
+            var obj = _postStatService.Init(statistic);
+            if (obj == null) {
+                return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
+            }
 
             return CreatedAtAction("GetStatistic", new { id = statistic.Id }, statistic);
         }
@@ -104,27 +74,9 @@ namespace WebApplication2.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteStatistic(int id)
         {
-            if (_context.Statistics == null)
-            {
-                return NotFound();
-            }
-            var statistic = await _context.Statistics.FindAsync(id);
-            if (statistic == null)
-            {
-                return NotFound();
-            }
 
-            _context.Statistics.Remove(statistic);
-            _cacheService.Delete(cacheOnlyCostumerKey);
-            _cacheService.Delete(cacheAllCostumersKey);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return await _deleteStatService.Init(id);
         }
 
-        private bool StatisticExists(int id)
-        {
-            return (_context.Statistics?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
     }
 }

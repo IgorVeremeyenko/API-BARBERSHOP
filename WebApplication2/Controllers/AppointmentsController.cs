@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using System.Collections.Generic;
 using WebApplication2.Models;
-using WebApplication2.Services.Appointments;
 using WebApplication2.Services.Cache;
+using WebApplication2.ServicesList.Appointments.Controllers.Delete;
+using WebApplication2.ServicesList.Appointments.Controllers.Get;
+using WebApplication2.ServicesList.Appointments.Controllers.Post;
+using WebApplication2.ServicesList.Appointments.Controllers.Put;
 
 namespace WebApplication2.Controllers
 {
@@ -12,183 +12,96 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class AppointmentsController : ControllerBase
     {
-        private readonly MyDatabaseContext _context;
 
-        private readonly string cacheAllAppointmentsKey = "appointments_cache_key";
+        private string cacheAllAppointmentsKey = "appointments_cache_key";
 
-        private readonly string cacheOnlyAppointmentKey = "appointment_by_id_cache_key";
-
-        private readonly string cacheAllCostumersKey = "costumers_cache_key";
-
-        private readonly string cacheOnlyCostumerKey = "costumer_by_id_cache_key";
+        private string cacheAllCostumersKey = "costumers_cache_key";
 
         private readonly CacheService _cacheService;
 
-        public AppointmentsController(MyDatabaseContext context, CacheService cacheService)
+        private readonly GetAppListService _getAppListService;
+
+        private readonly GetByAdminIdService _getByAdminIdService;
+
+        private readonly GetListByMasterIdService _getByMasterIdService;
+
+        private readonly PutAppService _putAppService;
+
+        private readonly PostAppService _postAppService;
+
+        private readonly DeleteAppService _deleteAppService;
+
+        public AppointmentsController(
+            CacheService cacheService,
+            GetAppListService getAppListService,
+            GetByAdminIdService getByAdminIdService,
+            GetListByMasterIdService getListByMasterIdService,
+            PutAppService putAppService,
+            PostAppService postAppService,
+            DeleteAppService deleteAppService)
         {
-            _context = context;
 
             _cacheService = cacheService;
+
+            _getAppListService = getAppListService;
+
+            _getByAdminIdService = getByAdminIdService;
+
+            _getByMasterIdService = getListByMasterIdService;
+
+            _putAppService = putAppService;
+
+            _postAppService = postAppService;
+
+            _deleteAppService = deleteAppService;
         }
 
         // GET: api/Appointments
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments()
+        [HttpGet("allAppointments/{currentAdminId}")]
+        public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointments(int currentAdminId)
         {
-          if (_context.Appointments == null)
-          {
-              return NotFound();
-          }
-
-            var appointments = new List<Appointment>();
-
-            var isCache = _cacheService.TryGetValueFromList(cacheAllAppointmentsKey, appointments);
-
-            if (!isCache) {
-                appointments = await _context.Appointments.ToListAsync();
-                _cacheService.Set(cacheAllAppointmentsKey, appointments, TimeSpan.FromHours(12));
-            }
-            else {
-                /*appointments = _cacheService.Get<List<Appointment>>(cacheAllAppointmentsKey);*/
-                appointments = await _context.Appointments.ToListAsync();
-            }
-
-            return Ok(appointments);
-
+            return await _getAppListService.InitList( _cacheService, cacheAllAppointmentsKey, currentAdminId);
         }
 
         [HttpGet("appointmentsByMasterID/{id}")]
         public async Task<ActionResult<IEnumerable<Appointment>>> GetAppointmentsByMaster(int id) {
 
-            if (_context.Appointments == null) {
-                return NotFound();
-            }
-
-            var appointments = new List<Appointment>();
-            appointments = await _context.Appointments.ToListAsync();
-            FilterAppointmentsForMaster filterAppointmentsForMaster = new FilterAppointmentsForMaster();
-            var result = filterAppointmentsForMaster.GetAppointments(id, appointments);
-
-            return Ok(result);
-
+            return await _getByMasterIdService.InitGetList( id);
         }
 
         // GET: api/Appointments/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Appointment>> GetAppointment(int id)
         {
-          if (_context.Appointments == null)
-          {
-              return NotFound();
-          }
-
-          var appointment = new Appointment();
-
-            var isCache = _cacheService.TryGetValueSingle(cacheOnlyAppointmentKey, appointment);
-
-            if (!isCache) {
-                appointment = await _context.Appointments.FindAsync(id);
-                _cacheService.Set(cacheOnlyAppointmentKey, appointment, TimeSpan.FromHours(12));
-            }
-            else {
-                /* appointment = _cacheService.Get<Appointment>(cacheOnlyAppointmentKey);*/
-                appointment = await _context.Appointments.FindAsync(id);
-            }
-
-            if (appointment == null)
-            {
-                return NotFound();
-            }
-
-            return appointment;
+            return await _getByAdminIdService.Init( id);
         }
 
 
         // PUT: api/Appointments/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAppointment(int id, Appointment appointment)
+        public async Task<IActionResult> PutAppointment(int id, Appointment appointment, int adminId)
         {
-            if (id != appointment.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(appointment).State = EntityState.Modified;
-            _cacheService.Delete(cacheAllAppointmentsKey);
-            _cacheService.Delete(cacheOnlyAppointmentKey);
-            _cacheService.Delete(cacheAllCostumersKey);
-            _cacheService.Delete(cacheOnlyCostumerKey);
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AppointmentExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return await _putAppService.Init( _cacheService, cacheAllAppointmentsKey, id, adminId, cacheAllCostumersKey,appointment);
         }
 
         // POST: api/Appointments
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Appointment>> PostAppointment(Appointment appointment)
+        [HttpPost("{id}")]
+        public async Task<ActionResult<Appointment>> PostAppointment(Appointment appointment, int id)
         {
-          if (_context.Appointments == null)
-          {
-              return Problem("Entity set 'MyDatabaseContext.Appointments'  is null.");
-          }
-            int timezoneOffset = appointment.TimezoneOffset;
-            DateTime utcTime = appointment.Date;
-            DateTime localTime = utcTime.AddMinutes(-timezoneOffset);
-            appointment.Date = localTime;
-            _context.Appointments.Add(appointment);
-            _cacheService.Delete(cacheAllAppointmentsKey);
-            _cacheService.Delete(cacheOnlyAppointmentKey);
-            _cacheService.Delete(cacheAllCostumersKey);
-            _cacheService.Delete(cacheOnlyCostumerKey);
-            await _context.SaveChangesAsync();
+            var obj = _postAppService.Init(appointment,_cacheService, cacheAllAppointmentsKey, id, cacheAllCostumersKey);
+            if(obj == null) {
+                return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
+            }
 
-            return CreatedAtAction("GetAppointment", new { id = appointment.Id }, appointment);
+            return CreatedAtAction("GetAppointment", new { id = obj.Id }, obj);
         }
 
         // DELETE: api/Appointments/5
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteAppointment(int id)
+        public async Task<IActionResult> DeleteAppointment(int id, int adminId)
         {
-            if (_context.Appointments == null)
-            {
-                return NotFound();
-            }
-            var appointment = await _context.Appointments.FindAsync(id);
-            if (appointment == null)
-            {
-                return NotFound();
-            }
-
-            _context.Appointments.Remove(appointment);
-            _cacheService.Delete(cacheAllAppointmentsKey);
-            _cacheService.Delete(cacheOnlyAppointmentKey);
-            _cacheService.Delete(cacheAllCostumersKey);
-            _cacheService.Delete(cacheOnlyCostumerKey);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return await _deleteAppService.Init(id,_cacheService,cacheAllAppointmentsKey, adminId, cacheAllCostumersKey);
         }
 
-        private bool AppointmentExists(int id)
-        {
-            return (_context.Appointments?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
     }
 }

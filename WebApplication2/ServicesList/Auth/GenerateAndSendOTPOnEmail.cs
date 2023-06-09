@@ -24,6 +24,7 @@ namespace WebApplication2.Services.Auth {
             try {
                 SmtpClient smtpClient = new SmtpClient("smtp.mail.ru", 587);
                 smtpClient.UseDefaultCredentials = false;
+                //
                 smtpClient.Credentials = new NetworkCredential("igor_veremeyenko@mail.ru", "ayqwRJpUK2F9ji0MPAFg");
                 smtpClient.EnableSsl = true;
                     
@@ -43,9 +44,7 @@ namespace WebApplication2.Services.Auth {
                 mailMessage.From = new MailAddress("igor_veremeyenko@mail.ru");
                 mailMessage.To.Add(_email);
                 mailMessage.Subject = "Код OTP для сброса пароля в приложении \"Cut Master\"";
-
-                _cacheService.Set(cacheEmail, _email, TimeSpan.FromMinutes(10));
-                _cacheService.Set(cacheOTP, otpCode, TimeSpan.FromMinutes(10));
+                _cacheService.Set(_email, otpCode, TimeSpan.FromMinutes(10));
                 smtpClient.Send(mailMessage);
 
                 return true;

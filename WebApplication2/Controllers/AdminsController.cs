@@ -1,15 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using WebApplication2.Models;
-using WebApplication2.Services;
 using WebApplication2.Services.Cache;
+using WebApplication2.Services;
+using WebApplication2.ServicesList.Admins.Controllers.Get;
+using WebApplication2.ServicesList.Admins.Controllers.Put;
+using WebApplication2.ServicesList.Admins.Controllers.Post;
+using WebApplication2.ServicesList.Admins.Controllers.Delete;
 
 namespace WebApplication2.Controllers
 {
@@ -17,99 +14,70 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class AdminsController : ControllerBase
     {
-        private readonly MyDatabaseContext _context;
 
-        private readonly GeneratingSaltForPasswordHashing _generationSalt = new GeneratingSaltForPasswordHashing();
+        private readonly GeneratingSaltForPasswordHashing _generationSalt;
 
-        private readonly HashingPassword _hash = new HashingPassword();
+        private readonly HashingPassword _hash;
 
-        public AdminsController(MyDatabaseContext context)
+        private readonly GetByIdService _getByAdminIdService;
+
+        private readonly PutByIdService _putByIdService;
+
+        private readonly PostAdminService _postAdminService;
+
+        private readonly DeleteAdminService _deleteAdminService;
+
+        private readonly GetListService _listService;
+
+        public AdminsController(
+            GeneratingSaltForPasswordHashing generatingSaltForPasswordHashing,
+            HashingPassword hashingPassword,
+            GetByIdService getByAdminIdService,
+            PutByIdService putByIdService,
+            PostAdminService postAdminService,
+            DeleteAdminService deleteAdminService,
+            GetListService getListService)
         {
-            _context = context;
+            _hash = hashingPassword;
+            _generationSalt = generatingSaltForPasswordHashing;
+            _putByIdService = putByIdService;
+            _getByAdminIdService = getByAdminIdService;
+            _postAdminService = postAdminService;
+            _deleteAdminService = deleteAdminService;
+            _listService = getListService;
         }
 
         // GET: api/Admins
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Admin>>> GetAdmins()
         {
-          if (_context.Admins == null)
-          {
-              return NotFound();
-          }
-            return await _context.Admins.ToListAsync();
+            return await _listService.InitList();
         }
 
         // GET: api/Admins/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Admin>> GetAdmin(int id)
         {
-          if (_context.Admins == null)
-          {
-              return NotFound();
-          }
-            var admin = await _context.Admins.FindAsync(id);
-
-            if (admin == null)
-            {
-                return NotFound();
-            }
-
-            return admin;
+            return await _getByAdminIdService.initId( id);
         }
 
         // PUT: api/Admins/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [AllowAnonymous]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAdmin(int id, Admin admin)
         {
-            if (id != admin.Id)
-            {
-                return BadRequest();
-            }
-            var salt = _generationSalt.GenerateSalt();
-
-            var hashedPassword = _hash.HashPassword(admin.Password, salt);
-
-            var adm = await _context.Admins.FindAsync(id);
-
-            if (adm != null) {
-                adm.Password = hashedPassword;
-                adm.Salt = salt;
-            }
-            
-            _context.Entry(adm).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AdminExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return await _putByIdService.Init(_hash,  id, admin, _generationSalt);
         }
 
         // POST: api/Admins
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Admin>> PostAdmin(Admin admin)
         {
-          if (_context.Admins == null)
-          {
-              return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
-          }
-            _context.Admins.Add(admin);
-            await _context.SaveChangesAsync();
+
+            var obj = _postAdminService.InitPost(admin);
+            if(obj != null) {
+                return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
+            }
 
             return CreatedAtAction("GetAdmin", new { id = admin.Id }, admin);
         }
@@ -118,25 +86,8 @@ namespace WebApplication2.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAdmin(int id)
         {
-            if (_context.Admins == null)
-            {
-                return NotFound();
-            }
-            var admin = await _context.Admins.FindAsync(id);
-            if (admin == null)
-            {
-                return NotFound();
-            }
-
-            _context.Admins.Remove(admin);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            return await _deleteAdminService.InitDel( id);
         }
 
-        private bool AdminExists(int id)
-        {
-            return (_context.Admins?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
     }
 }

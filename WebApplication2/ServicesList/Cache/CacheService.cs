@@ -10,8 +10,8 @@ namespace WebApplication2.Services.Cache
 
         void Delete(string key);
 
-        bool TryGetValueFromList<T>(string key, List<T> value);
-        bool TryGetValueSingle<T>(string key, T value);
+        bool TryGetValueFromList<T>(string key);
+        bool TryGetValueSingle<T>(string key);
     }
     public class CacheService : ICacheService
     {
@@ -28,13 +28,15 @@ namespace WebApplication2.Services.Cache
             return _cache.Get<T>(key);
         }
 
-        public bool TryGetValueFromList<T>(string key, List<T> value)
+        public bool TryGetValueFromList<T>(string key)
         {
+            T value = default;
             return _cache.TryGetValue(key, out value);
         }
 
-        public bool TryGetValueSingle<T>(string key, T value)
+        public bool TryGetValueSingle<T>(string key)
         {
+            T value = default;
             return _cache.TryGetValue(key, out value);
         }
 

@@ -1,4 +1,5 @@
 ﻿using WebApplication2.Models;
+using WebApplication2.Models.Costumer;
 
 namespace WebApplication2.Services.Costumers
 {
