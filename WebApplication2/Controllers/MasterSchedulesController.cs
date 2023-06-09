@@ -2,6 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using WebApplication2.Models;
+using WebApplication2.ServicesList.MasterSchedules.Controllers.Delete;
+using WebApplication2.ServicesList.MasterSchedules.Controllers.Get;
+using WebApplication2.ServicesList.MasterSchedules.Controllers.Post;
+using WebApplication2.ServicesList.MasterSchedules.Controllers.Put;
 
 namespace WebApplication2.Controllers
 {
@@ -9,118 +13,68 @@ namespace WebApplication2.Controllers
     [ApiController]
     public class MasterSchedulesController : ControllerBase
     {
-        private readonly MyDatabaseContext _context;
 
-        public MasterSchedulesController(MyDatabaseContext context)
-        {
-            _context = context;
+        private readonly GetShedulesByIdService _getShedulesByIdService;
+
+        private readonly GetShedulesListService _getShedulesListService;
+
+        private readonly PutShedulesService _putShedulesService;
+
+        private readonly PostShedulesService _postShedulesService;
+
+        private readonly DeleteShedulesService _deleteShedulesService;
+
+        public MasterSchedulesController(
+            GetShedulesByIdService getShedulesByIdService,
+            GetShedulesListService getShedulesListService,
+            PutShedulesService putShedulesService,
+            PostShedulesService postShedulesService,
+            DeleteShedulesService deleteShedulesService) {
+            _getShedulesByIdService = getShedulesByIdService;
+            _getShedulesListService = getShedulesListService;
+            _putShedulesService = putShedulesService;
+            _postShedulesService = postShedulesService;
+            _deleteShedulesService = deleteShedulesService;
         }
 
         // GET: api/MasterSchedules
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MasterSchedule>>> GetMasterSchedules()
         {
-          if (_context.MasterSchedules == null)
-          {
-              return NotFound();
-          }
-            return await _context.MasterSchedules.ToListAsync();
+            return await _getShedulesListService.Init();
         }
 
         // GET: api/MasterSchedules/5
         [HttpGet("{id}")]
         public async Task<ActionResult<MasterSchedule>> GetMasterSchedule(int id)
         {
-          if (_context.MasterSchedules == null)
-          {
-              return NotFound();
-          }
-            var masterSchedule = await _context.MasterSchedules.FindAsync(id);
-
-            if (masterSchedule == null)
-            {
-                return NotFound();
-            }
-
-            return masterSchedule;
+            return await _getShedulesByIdService.Init( id);
         }
 
         // PUT: api/MasterSchedules/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutMasterSchedule(int id, MasterSchedule masterSchedule)
         {
-            if (id != masterSchedule.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(masterSchedule).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MasterScheduleExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return await _putShedulesService.Init(id, masterSchedule);
         }
 
         // POST: api/MasterSchedules
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<MasterSchedule>> PostMasterSchedule(MasterSchedule masterSchedule)
         {
-          if (_context.MasterSchedules == null)
-          {
-              return Problem("Entity set 'MyDatabaseContext.MasterSchedules'  is null.");
-          }
-            _context.MasterSchedules.Add(masterSchedule);
-            await _context.SaveChangesAsync();
+            var obj = _postShedulesService.Init( masterSchedule);
+            if(obj == null) {
+                return Problem("Entity set 'MyDatabaseContext.Admins'  is null.");
+            }
 
             return CreatedAtAction("GetMasterSchedule", new { id = masterSchedule.Id }, masterSchedule);
         }
 
         [HttpDelete("{masterId}")]
         public async Task<IActionResult> DeleteByCondition(int masterId) {
-            try {
-                // Получаем все записи из базы данных, удовлетворяющие заданному условию
-                var recordsToDelete = await _context.MasterSchedules
-                    .Where(x => x.MasterId == masterId)
-                    .ToListAsync();
 
-                // Если нет записей для удаления, возвращаем сообщение об ошибке
-                if (!recordsToDelete.Any()) {
-                    return NotFound(JsonSerializer.Serialize($"No records found with {masterId}."));
-                }
-
-                // Удаляем найденные записи из базы данных
-                _context.MasterSchedules.RemoveRange(recordsToDelete);
-                await _context.SaveChangesAsync();
-
-                // Возвращаем сообщение об успешном удалении
-                return Ok(JsonSerializer.Serialize($"Deleted {recordsToDelete.Count} records with {masterId}."));
-            }
-            catch (Exception ex) {
-                // Обрабатываем ошибку и возвращаем сообщение об ошибке
-                return StatusCode(StatusCodes.Status500InternalServerError, JsonSerializer.Serialize($"Error deleting records: {ex.Message}"));
-            }
+            return await _deleteShedulesService.Init( masterId);
         }
 
-
-        private bool MasterScheduleExists(int id)
-        {
-            return (_context.MasterSchedules?.Any(e => e.Id == id)).GetValueOrDefault();
-        }
     }
 }

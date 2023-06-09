@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using static WebApplication2.Services.Costumers.CalculateRating;
 
-namespace WebApplication2.Models;
+namespace WebApplication2.Models.Costumer;
 
 public partial class Costumer
 {

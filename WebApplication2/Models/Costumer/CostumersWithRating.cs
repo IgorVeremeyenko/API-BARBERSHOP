@@ -1,5 +1,7 @@
-﻿namespace WebApplication2.Models {
-    public class CostumersWithRating {
+﻿namespace WebApplication2.Models.Costumer
+{
+    public class CostumersWithRating
+    {
         public int Id { get; set; }
         public string Name { get; set; }
         public string Phone { get; set; }

@@ -23,7 +23,7 @@ public partial class Appointment
 
     public string? Status { get; set; }
 
-    public virtual Costumer? Costumer { get; set; } = null;
+    public virtual Costumer.Costumer? Costumer { get; set; } = null;
 
     public virtual Service? Service { get; set; } = null;
 

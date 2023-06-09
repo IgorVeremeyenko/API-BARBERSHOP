@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace WebApplication2.Models;
+﻿namespace WebApplication2.Models;
 
 public partial class Admin
 {
@@ -17,7 +14,7 @@ public partial class Admin
 
     public virtual ICollection<Appointment> Appointments { get; } = new List<Appointment>();
 
-    public virtual ICollection<Costumer> Costumers { get; } = new List<Costumer>();
+    public virtual ICollection<Costumer.Costumer> Costumers { get; } = new List<Costumer.Costumer>();
 
     public virtual ICollection<Service> Services { get; } = new List<Service>();
 

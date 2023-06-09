@@ -11,6 +11,8 @@ public partial class Master
 
     public string? Phone { get; set; } = null;
 
+    public int? UserId { get; set; }
+
     public virtual ICollection<MasterSchedule> MasterSchedules { get; } = new List<MasterSchedule>();
 
     public virtual ICollection<Service> Services { get; } = new List<Service>();
